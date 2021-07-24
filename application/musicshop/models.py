@@ -1,6 +1,10 @@
+from django.conf import settings
 from django.db import models
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
+from django.utils import timezone
+
+from utils import upload_function
 
 
 class MediaType(models.Model):
@@ -22,6 +26,7 @@ class Member(models.Model):
 
     name = models.CharField(max_length=255, verbose_name='Имя музыканта')
     slug = models.SlugField()
+    image = models.ImageField(upload_to=upload_function, null=True, blank=True)
 
     def __str__(self):
         return self.name
@@ -53,6 +58,7 @@ class Artist(models.Model):
     members = models.ManyToManyField(Member, verbose_name='Участник',
                                      related_name='artist')
     slug = models.SlugField()
+    image = models.ImageField(upload_to=upload_function, null=True, blank=True)
 
     def __str__(self):
         return f"{self.name} | {self.genre.name}"
@@ -80,6 +86,7 @@ class Album(models.Model):
                                 verbose_name='Цена')
     offer_of_the_week = models.BooleanField(default=False,
                                             verbose_name='Предложение недели')
+    image = models.ImageField(upload_to=upload_function)
 
     def __str__(self):
         return f"{self.id} | {self.artist.name} | {self.name}"
@@ -140,3 +147,112 @@ class Cart(models.Model):
     class Meta:
         verbose_name = 'Корзина'
         verbose_name_plural = 'Корзины'
+
+
+class Order(models.Model):
+    """Заказ пользователя"""
+
+    STATUS_NEW = 'new'
+    STATUS_IN_PROGRESS = 'in_progress'
+    STATUS_READY = 'is_ready'
+    STATUS_COMPLETED = 'completed'
+
+    BUYING_TYPE_SELF = 'self'
+    BUYING_TYPE_DELIVERY = 'delivery'
+
+    STATUS_CHOICES = (
+        (STATUS_NEW, 'Новый заказ'),
+        (STATUS_IN_PROGRESS, 'Заказ в обработке'),
+        (STATUS_READY, 'Заказ готов'),
+        (STATUS_COMPLETED, 'Заказ получен покупателем')
+    )
+
+    BUYING_TYPE_CHOICES = (
+        (BUYING_TYPE_SELF, 'Самовывоз'),
+        (BUYING_TYPE_DELIVERY, 'Доставка')
+    )
+
+    customer = models.ForeignKey('Customer', verbose_name='Покупатель',
+                                 related_name='orders',
+                                 on_delete=models.CASCADE)
+    first_name = models.CharField(max_length=255, verbose_name='Имя')
+    last_name = models.CharField(max_length=255, verbose_name='Фамилия')
+    phone = models.CharField(max_length=20, verbose_name='Номер телефона')
+    cart = models.ForeignKey(Cart, verbose_name='Корзина',
+                             on_delete=models.CASCADE)
+    address = models.CharField(max_length=1024, verbose_name='Адрес', null=True,
+                               blank=True)
+    status = models.CharField(max_length=100, verbose_name='Статус заказа',
+                              choices=STATUS_CHOICES, default=STATUS_NEW)
+    buying_type = models.CharField(max_length=100, verbose_name='Тип заказа',
+                                   choices=BUYING_TYPE_CHOICES)
+    comment = models.TextField(verbose_name='Комментарий к заказу', blank=True,
+                               null=True)
+    created_at = models.DateField(verbose_name='Дата создания заказа',
+                                  auto_now=True)
+    order_date = models.DateField(verbose_name='Дата получения заказа',
+                                  default=timezone.now)
+
+    def __str__(self):
+        return str(self.id)
+
+    class Meta:
+        verbose_name = 'Заказ'
+        verbose_name_plural = 'Заказы'
+
+
+class Customer(models.Model):
+    """Покупатель"""
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL,
+                                verbose_name='Пользователь',
+                                on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=True,
+                                    verbose_name='Состояние пользователя')
+    customer_orders = models.ManyToManyField(Order, blank=True,
+                                             related_name='related_customer',
+                                             verbose_name='Заказы покупателя')
+    wishlist = models.ManyToManyField(Album, blank=True,
+                                      verbose_name='Список ожидания')
+    phone = models.CharField(max_length=20, verbose_name='Номер телефона')
+    address = models.CharField(max_length=1024, null=True, blank=True, verbose_name='Адрес')
+
+    def __str__(self):
+        return f"{self.user.username}"
+
+    class Meta:
+        verbose_name = 'Покупатель'
+        verbose_name_plural = 'Покупатели'
+
+
+class Notification(models.Model):
+    """Уведомления"""
+
+    recipient = models.ForeignKey(Customer, on_delete=models.CASCADE,
+                                  verbose_name='Получатель')
+    text = models.TextField()
+    read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Уведомление для {self.recipient.user.username} | {self.id}"
+
+    class Meta:
+        verbose_name = 'Уведомление'
+        verbose_name_plural = 'Уведомления'
+
+
+class ImageGallery(models.Model):
+    """Галерея изображений"""
+
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+    image = models.ImageField(upload_to=upload_function)
+    use_in_slider = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Изображение для {self.content_object}"
+
+    class Meta:
+        verbose_name = 'Галерея изображений'
+        verbose_name_plural = verbose_name

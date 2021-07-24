@@ -1,0 +1,11 @@
+LICENSE
+README.md
+setup.cfg
+setup.py
+verb/__init__.py
+verb.egg-info/PKG-INFO
+verb.egg-info/SOURCES.txt
+verb.egg-info/dependency_links.txt
+verb.egg-info/not-zip-safe
+verb.egg-info/requires.txt
+verb.egg-info/top_level.txt
