@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.utils import timezone
+from django.utils.safestring import mark_safe
 
 from utils import upload_function
 
@@ -131,7 +132,7 @@ class Cart(models.Model):
 
     owner = models.ForeignKey('Customer', verbose_name='Покупатель',
                               on_delete=models.CASCADE)
-    products = models.ManyToManyField(CartProduct, blank=True, null=True,
+    products = models.ManyToManyField(CartProduct, blank=True,
                                       related_name='related_cart',
                                       verbose_name='Продукты для корзины')
     total_products = models.IntegerField(default=0,
@@ -252,6 +253,9 @@ class ImageGallery(models.Model):
 
     def __str__(self):
         return f"Изображение для {self.content_object}"
+
+    def image_url(self):
+        return mark_safe(f'<img src="{self.image.url}" width="auto" height="200px"/>')
 
     class Meta:
         verbose_name = 'Галерея изображений'

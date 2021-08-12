@@ -3,7 +3,7 @@ class ImageUploadHelper:
         'defaults': {
             'upload_postfix': 'uploads',
         },
-        'Members': {
+        'Member': {
             'field': 'slug',
             'upload_postfix': 'members_images',
         },
